@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Monitoramento da Matriz SoD (Dark Mode)</title>
+    <!-- Tailwind CSS CDN --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN for visualizations --><script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font: Inter --><style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text for contrast */
+            padding-top: 4.5rem; /* Space for fixed header */
+        }
+        .header-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background-color: #2d3748; /* Slightly lighter dark for header */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+        .tab-button {
+            color: #a0aec0; /* Lighter gray for inactive tabs */
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .tab-button.active {
+            border-bottom: 2px solid #6366f1; /* Accent blue-violet */
+            color: #e2e8f0; /* White for active tab text */
+            font-weight: 600;
+        }
+        .tab-button:hover:not(.active) {
+            color: #cbd5e0; /* Even lighter gray on hover */
+        }
+        .card {
+            background-color: #2d3748; /* Slightly lighter dark for cards */
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+            border: 1px solid #4a5568; /* Subtle border for definition */
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+        }
+        .metric-card {
+            border-left: 4px solid;
+        }
+        /* Chart.js overrides for dark mode */
+        canvas {
+            color: #e2e8f0 !important; /* Ensures chart labels are light */
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Header Fixo Dark Mode --><header class="header-fixed bg-gray-800 shadow-lg p-4 flex justify-between items-center border-b border-gray-700">
+        <div class="flex items-center">
+            <svg class="w-6 h-6 text-purple-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l-2 2-2-2m4 13h10a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v10a2 2 0 002 2zm7-9a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <!-- Ajuste de tamanho de fonte para celular (text-lg) --><h1 class="text-lg md:text-xl font-bold text-gray-100">Monitoramento SoD - HCM Auditoria (Dark Mode)</h1>
+        </div>
+        <p class="text-sm text-gray-400 hidden md:block">Visão em tempo real</p>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8">
+        <p class="text-gray-400 mb-6 text-sm">Painel de controle para Segregação de Funções (SoD) e gestão de riscos na Senior Sistemas.</p>
+
+        <!-- Navegação de Abas (Dashboards Múltiplos) --><nav class="border-b border-gray-700 mb-8 bg-gray-800 rounded-t-lg p-0">
+            <!-- Adicionado px-4 para evitar que as abas encostem na borda da tela --><div class="flex space-x-8 overflow-x-auto px-4">
+                <button class="tab-button active py-3 px-1 whitespace-nowrap text-sm" onclick="showTab('resumo')">1. Resumo de Risco (Geral)</button>
+                <button class="tab-button py-3 px-1 whitespace-nowrap text-sm" onclick="showTab('acessos')">2. Acessos e Uso (Transações)</button>
+                <button class="tab-button py-3 px-1 whitespace-nowrap text-sm" onclick="showTab('ocorrencias')">3. Erros e Ocorrências</button>
+                <button class="tab-button py-3 px-1 whitespace-nowrap text-sm" onclick="showTab('divergencias')">4. Conflitos SoD (Detalhe)</button>
+            </div>
+        </nav>
+
+        <!-- Conteúdo das Abas --><!-- 1. Resumo de Risco (Geral) - Layout 1 coluna no celular, 4 no desktop --><div id="resumo" class="tab-content grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <!-- Card 1: Conflitos Críticos --><div class="card metric-card border-red-500">
+                <div class="flex items-start justify-between">
+                    <p class="text-sm font-medium text-gray-300">Conflitos CRÍTICOS</p>
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <div class="mt-1">
+                    <div class="text-4xl font-extrabold text-gray-50">12</div>
+                    <p class="text-xs text-gray-400 mt-1">Folha/Salário</p>
+                </div>
+            </div>
+
+            <!-- Card 2: Conflitos Alto Risco --><div class="card metric-card border-amber-500">
+                 <div class="flex items-start justify-between">
+                    <p class="text-sm font-medium text-gray-300">Conflitos de Risco ALTO</p>
+                    <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.398 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <div class="mt-1">
+                    <div class="text-4xl font-extrabold text-gray-50">45</div>
+                    <p class="text-xs text-gray-400 mt-1">Benefícios/Afastamentos</p>
+                </div>
+            </div>
+
+            <!-- Card 3: Conformidade de Perfis --><div class="card metric-card border-green-500">
+                 <div class="flex items-start justify-between">
+                    <p class="text-sm font-medium text-gray-300">Conformidade de Perfis</p>
+                    <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.664 5.176-1.374 9-6.073 9-11.664a12.02 12.02 0 00-.382-3.016z"></path></svg>
+                </div>
+                <div class="mt-1">
+                    <div class="text-4xl font-extrabold text-gray-50">98%</div>
+                    <p class="text-xs text-gray-400 mt-1">Nível de Risco Base</p>
+                </div>
+            </div>
+
+            <!-- Card 4: Transações de Alto Risco --><div class="card metric-card border-blue-500">
+                 <div class="flex items-start justify-between">
+                    <p class="text-sm font-medium text-gray-300">Transações de Alto Risco</p>
+                     <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V3m0 20v-5m-6 0h12"></path></svg>
+                </div>
+                <div class="mt-1">
+                    <div class="text-4xl font-extrabold text-gray-50">345</div>
+                    <p class="text-xs text-gray-400 mt-1">Edição Salarial/Folha</p>
+                </div>
+            </div>
+
+
+            <!-- Gráficos com Wrapper de Altura Fixa -->
+            <!-- No celular ocupa 1 coluna (padrão), no desktop 2 colunas -->
+            <div class="card md:col-span-2 lg:col-span-2">
+                <h3 class="text-xl font-semibold mb-4 text-gray-100">Saldo Líquido de Conflitos (Tendência 6M)</h3>
+                <!-- Wrapper para forçar altura fixa e conter o canvas --><div class="relative h-72 w-full"> 
+                    <canvas id="riskTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- No celular ocupa 1 coluna (padrão), no desktop 2 colunas -->
+            <div class="card md:col-span-2 lg:col-span-2">
+                <h3 class="text-xl font-semibold mb-4 text-gray-100">Principais Áreas de Risco (Módulos HCM)</h3>
+                 <!-- Wrapper para forçar altura fixa e conter o canvas --><div class="relative h-72 w-full">
+                    <canvas id="riskAreaChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 2. Acessos e Uso - Layout 1 coluna no celular, 3 no desktop -->
+        <div id="acessos" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- No celular ocupa 1 coluna, no desktop 2 colunas -->
+            <div class="card lg:col-span-2">
+                <h3 class="text-xl font-semibold mb-4 text-gray-100">Monitoramento: Quem Acessa o Quê (Top 5 Funções HCM)</h3>
+                <!-- Wrapper para forçar altura fixa e conter o canvas --><div class="relative h-72 w-full">
+                    <canvas id="accessChart"></canvas>
+                </div>
+            </div>
+
+            <!-- No celular ocupa 1 coluna, no desktop 1 coluna -->
+            <div class="card lg:col-span-1">
+                <h3 class="text-xl font-semibold mb-4 text-gray-100">Usuários com Mais Acessos de Alto Risco</h3>
+                <ul class="space-y-3 text-sm">
+                    <!-- Nomes e IDs de exemplo mantidos, mas contexto é RH --><li class="flex justify-between items-center py-2 border-b border-gray-600">
+                        <span class="font-medium text-blue-400">Júlio Viana (ID 0123)</span>
+                        <span class="bg-blue-800 text-blue-100 text-xs font-semibold px-2.5 py-0.5 rounded-full">480 Edições</span>
+                    </li>
+                    <li class="flex justify-between items-center py-2 border-b border-gray-600">
+                        <span class="font-medium text-blue-400">Ana Souza (ID 0456)</span>
+                        <span class="bg-blue-800 text-blue-100 text-xs font-semibold px-2.5 py-0.5 rounded-full">410 Edições</span>
+                    </li>
+                    <li class="flex justify-between items-center py-2 border-b border-gray-600">
+                        <span class="font-medium text-blue-400">Carla Lima (ID 0789)</span>
+                        <span class="bg-blue-800 text-blue-100 text-xs font-semibold px-2.5 py-0.5 rounded-full">350 Processos</span>
+                    </li>
+                    <li class="flex justify-between items-center py-2 border-b border-gray-600">
+                        <span class="font-medium text-blue-400">Pedro Alves (ID 1011)</span>
+                        <span class="bg-blue-800 text-blue-100 text-xs font-semibold px-2.5 py-0.5 rounded-full">290 Processos</span>
+                    </li>
+                    <li class="flex justify-between items-center py-2">
+                        <span class="font-medium text-blue-400">Mariana Reis (ID 1213)</span>
+                        <span class="bg-blue-800 text-blue-100 text-xs font-semibold px-2.5 py-0.5 rounded-full">255 Consultas</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 3. Ocorrências e Erros - Layout 1 coluna no celular, 3 no desktop -->
+        <div id="ocorrencias" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Ocupa largura total no celular e desktop -->
+            <div class="card lg:col-span-3">
+                <h3 class="text-xl font-semibold mb-4 text-gray-100">Erros e Ocorrências (Últimas 72h) - Senior HCM</h3>
+                <!-- Adicionado overflow-x-auto para que a tabela não quebre o layout no celular, permitindo a rolagem horizontal --><div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-700">
+                        <thead>
+                            <tr class="bg-gray-700">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data/Hora</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Usuário</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Ocorrência</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Risco</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-gray-800 divide-y divide-gray-700 text-sm">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-300">24/11 10:30</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-300">João Silva</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-300">Tentativa de alteração de salário sem aprovação de Nível 2.</td>
+                                <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-800 text-red-100">Bloqueado</span></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-red-400">Crítico</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-300">24/11 09:15</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-300">Maria Oliveira</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-300">Exceção no fechamento da Folha (Divergência de impostos).</td>
+                                <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-800 text-yellow-100">Revisão</span></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-amber-400">Alto</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-300">23/11 16:45</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-300">Carlos Santos</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-300">Acesso negado: Tentativa de reativar perfil excluído.</td>
+                                <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-800 text-green-100">Concluído</span></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-green-400">Baixo</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Divergências de Perfil (Conflitos SoD) - Layout 1 coluna no celular, 3 no desktop -->
+        <div id="divergencias" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Scorecard de Conflitos (Lista) - HCM Risk Score. Ocupa 1 coluna no celular e desktop -->
+            <div class="card lg:col-span-1">
+                <h3 class="text-xl font-semibold mb-4 text-gray-100">Top 5 Usuários em Conflito HCM</h3>
+                <p class="text-sm text-gray-400 mb-4">Mede o 'SoD Exposure Score' de cada colaborador no HCM.</p>
+                <ul class="space-y-4">
+                    <li class="flex flex-col p-3 rounded-lg bg-red-900 bg-opacity-30 border-l-4 border-red-500">
+                        <div class="font-bold text-red-300">Daniela G.</div>
+                        <div class="text-xs text-gray-400">Risco: 8.5/10 - (Alterar Salário + Executar Pag. Folha)</div>
+                        <div class="w-full bg-gray-600 rounded-full h-1 mt-1"><div class="bg-red-500 h-1 rounded-full" style="width: 85%"></div></div>
+                    </li>
+                     <li class="flex flex-col p-3 rounded-lg bg-orange-900 bg-opacity-30 border-l-4 border-amber-500">
+                        <div class="font-bold text-amber-300">Roberto A.</div>
+                        <div class="text-xs text-gray-400">Risco: 7.2/10 - (Cadastrar Colab. + Aprovar Benefício)</div>
+                        <div class="w-full bg-gray-600 rounded-full h-1 mt-1"><div class="bg-amber-500 h-1 rounded-full" style="width: 72%"></div></div>
+                    </li>
+                     <li class="flex flex-col p-3 rounded-lg bg-yellow-900 bg-opacity-30 border-l-4 border-yellow-500">
+                        <div class="font-bold text-yellow-300">Elias S.</div>
+                        <div class="text-xs text-gray-400">Risco: 6.0/10 - (Gerir Afastamento + Pagar Rescisão)</div>
+                        <div class="w-full bg-gray-600 rounded-full h-1 mt-1"><div class="bg-yellow-500 h-1 rounded-full" style="width: 60%"></div></div>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Heatmap de Conflitos (Matriz) - Ocupa 1 coluna no celular, 2 no desktop -->
+            <div class="card lg:col-span-2">
+                <h3 class="text-xl font-semibold mb-4 text-gray-100">Matriz de Conflitos (Heatmap de Funções HCM)</h3>
+                <p class="text-sm text-gray-400 mb-4">Números indicam o total de colaboradores com a combinação de permissões SoD.</p>
+                <!-- Adicionado overflow-x-auto para que a tabela não quebre o layout no celular --><div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-700 border border-gray-700">
+                        <thead>
+                            <tr class="bg-gray-700">
+                                <th class="p-2 text-xs font-medium text-gray-300 uppercase tracking-wider w-1/4">Função</th>
+                                <th class="p-2 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Alterar Salário</th>
+                                <th class="p-2 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Executar Folha</th>
+                                <th class="p-2 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Aprovar Férias</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-gray-800 divide-y divide-gray-700 text-sm">
+                            <!-- Funções de Referência (primeira coluna) --><tr>
+                                <td class="p-2 font-medium text-gray-300">Cadastrar Colaborador</td>
+                                <td class="p-2 text-center bg-red-900 text-red-300 font-bold">12</td>
+                                <td class="p-2 text-center bg-orange-900 text-orange-300 font-semibold">5</td>
+                                <td class="p-2 text-center bg-yellow-900 text-yellow-300">3</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2 font-medium text-gray-300">Alterar Salário</td>
+                                <td class="p-2 text-center bg-gray-700 italic text-gray-500">N/A</td>
+                                <td class="p-2 text-center bg-red-900 text-red-300 font-semibold">8</td>
+                                <td class="p-2 text-center bg-green-900 text-green-300">1</td>
+                            </tr>
+                             <tr>
+                                <td class="p-2 font-medium text-gray-300">Executar Folha</td>
+                                <td class="p-2 text-center bg-gray-700 italic text-gray-500">N/A</td>
+                                <td class="p-2 text-center bg-gray-700 italic text-gray-500">N/A</td>
+                                <td class="p-2 text-center bg-green-900 text-green-300">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-gray-500 mt-3">*Cores mais quentes indicam maior número de conflitos.</p>
+            </div>
+        </div>
+    </main>
+
+
+    <script>
+        // --- Lógica de Navegação entre Abas ---
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            document.getElementById(tabId).classList.remove('hidden');
+            document.querySelector(`.tab-button[onclick*='${tabId}']`).classList.add('active');
+        }
+
+        // --- Mock Data e Inicialização de Charts ---
+        window.onload = function() {
+            showTab('resumo'); 
+
+            // Dados Mock
+            const novosConflitos = [25, 30, 18, 45, 32, 28];
+            const mitigadosConflitos = [15, 20, 22, 30, 28, 35];
+            const meses = ['Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov'];
+            
+            const saldoLiquido = novosConflitos.map((novo, index) => novo - mitigadosConflitos[index]);
+
+            // Gráfico 1: Saldo Líquido de Conflitos (Tendência)
+            const riskTrendCtx = document.getElementById('riskTrendChart').getContext('2d');
+            new Chart(riskTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [{
+                        label: 'Saldo de Conflitos Abertos Líquidos',
+                        data: saldoLiquido,
+                        borderColor: '#6366f1', // Indigo para destaque no Dark Mode
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)', 
+                        tension: 0.3,
+                        fill: true, 
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                     responsive: true,
+                     maintainAspectRatio: false,
+                     scales: {
+                         y: {
+                             beginAtZero: false, 
+                             title: {
+                                 display: true,
+                                 text: 'Unidades de Conflito (Novo - Mitigado)',
+                                 color: '#cbd5e0' // Light gray for title
+                             },
+                             grid: {
+                                color: '#4a5568' // Darker grid lines
+                             },
+                             ticks: {
+                                color: '#cbd5e0' // Light gray for ticks
+                             }
+                         },
+                         x: {
+                             grid: {
+                                 color: '#4a5568'
+                             },
+                             ticks: {
+                                 color: '#cbd5e0'
+                             }
+                         }
+                     },
+                     plugins: {
+                         tooltip: {
+                             callbacks: {
+                                 label: function(context) {
+                                     let label = context.dataset.label || '';
+                                     if (label) {
+                                         label += ': ';
+                                     }
+                                     if (context.parsed.y !== null) {
+                                         label += context.parsed.y > 0 ? `+${context.parsed.y}` : context.parsed.y; 
+                                     }
+                                     return label;
+                                 }
+                             }
+                         },
+                         legend: {
+                            labels: {
+                                color: '#cbd5e0' // Light gray for legend text
+                            }
+                         }
+                     }
+                }
+            });
+
+            // Gráfico 2: Principais Áreas de Risco (Módulos)
+            const riskAreaCtx = document.getElementById('riskAreaChart').getContext('2d');
+            new Chart(riskAreaCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Folha de Pagamento', 'Cargos e Salários', 'Ponto e Frequência', 'Benefícios e Afastamentos'],
+                    datasets: [{
+                        data: [45, 30, 15, 10], 
+                        backgroundColor: ['#ef4444', '#f97316', '#3b82f6', '#10b981'], // Cores de Risco
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'right',
+                            labels: {
+                                color: '#cbd5e0' // Light gray for legend text
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico 3: Acessos e Uso (Top 5 Funções)
+            const accessCtx = document.getElementById('accessChart').getContext('2d');
+            new Chart(accessCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Processar Lote Salarial', 'Alterar Salário Base', 'Aprovar Pedido de Férias', 'Cadastrar Novo Colaborador', 'Gerir Benefícios'],
+                    datasets: [{
+                        label: 'Número de Acessos de Alto Risco (30 dias)',
+                        data: [1500, 1200, 850, 700, 520],
+                        backgroundColor: '#a78bfa', // Purple para destaque
+                        borderColor: '#8b5cf6',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                         y: {
+                             beginAtZero: true, 
+                             title: {
+                                 display: true,
+                                 text: 'Função HCM',
+                                 color: '#cbd5e0' 
+                             },
+                             grid: {
+                                color: '#4a5568' 
+                             },
+                             ticks: {
+                                color: '#cbd5e0' 
+                             }
+                         },
+                         x: {
+                             title: {
+                                 display: true,
+                                 text: 'Contagem de Acessos', // Correção: Adicionei o texto de título
+                                 color: '#cbd5e0' 
+                             },
+                             grid: {
+                                 color: '#4a5568'
+                             },
+                             ticks: {
+                                 color: '#cbd5e0'
+                             }
+                         }
+                     },
+                     plugins: {
+                        legend: {
+                            labels: {
+                                color: '#cbd5e0'
+                            }
+                        }
+                     }
+                }
+            });
+
+            // Configurações globais do Chart.js para Dark Mode (opcional, mas melhora a consistência)
+            Chart.defaults.color = '#e2e8f0'; 
+            Chart.defaults.borderColor = '#4a5568';
+             
+        } // Fechamento de window.onload
+    </script>
+</body>
+</html>
